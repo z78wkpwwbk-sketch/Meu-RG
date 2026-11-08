@@ -236,9 +236,12 @@ function qrSvg(){
 function rot(k){ return 90; }
 function deitar(img){ const r = rot(img.dataset.k), s = img.parentElement, lado = r % 180 !== 0;
   s.style.position = "relative";
-  const alt = s.clientHeight * 1;
-  Object.assign(img.style, { position:"absolute", left:"50%", top:(alt / 2) + "px", maxWidth:"none", objectFit:"fill",
-    width:(lado ? alt : s.clientWidth) + "px", height:(lado ? s.clientWidth : alt) + "px",
+  const alt = s.clientHeight, larg = s.clientWidth;
+  const nw = img.naturalWidth || 1, nh = img.naturalHeight || 1;
+  // caixa disponível antes da rotação; escala uniforme para manter a proporção original
+  const bw = lado ? alt : larg, bh = lado ? larg : alt, esc = Math.min(bw / nw, bh / nh);
+  Object.assign(img.style, { position:"absolute", left:"50%", top:(alt / 2) + "px", maxWidth:"none", maxHeight:"none", objectFit:"contain",
+    width:(nw * esc) + "px", height:(nh * esc) + "px",
     transform:"translate(-50%,-50%) rotate(" + r + "deg)" }); }
 let fotoAlvo = null;
 function trocarFoto(k){ fotoAlvo = k; document.getElementById("foto-in").click(); }
