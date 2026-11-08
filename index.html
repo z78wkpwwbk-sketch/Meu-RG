@@ -236,7 +236,9 @@ function qrSvg(){
 function rot(k){ return 90; }
 function deitar(img){ const r = rot(img.dataset.k), s = img.parentElement, lado = r % 180 !== 0;
   s.style.position = "relative";
+  if (!s._ro && window.ResizeObserver) { s._ro = new ResizeObserver(() => { if (img.isConnected) deitar(img); }); s._ro.observe(s); }
   const alt = s.clientHeight, larg = s.clientWidth;
+  if (!alt || !larg || !img.naturalWidth) return; // ainda oculto ou carregando: o observer refaz quando aparecer
   const nw = img.naturalWidth || 1, nh = img.naturalHeight || 1;
   // caixa disponível antes da rotação; escala uniforme para manter a proporção original
   const bw = lado ? alt : larg, bh = lado ? larg : alt, esc = Math.min(bw / nw, bh / nh);
