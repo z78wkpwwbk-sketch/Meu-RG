@@ -172,14 +172,15 @@ req.onerror = () => { document.getElementById("list").textContent = "Este navega
 function tx(mode){ return db.transaction("fotos", mode).objectStore("fotos"); }
 async function salvar(f, k, depois){
   try {
-    const blob = new Blob([await f.arrayBuffer()], { type: f.type || "image/jpeg" });
-    if (f.name) try { blob.name = f.name; } catch(e) {}
-    const t = tx("readwrite").put(blob, k).transaction;
+    const dado = { buf: await f.arrayBuffer(), type: f.type || "image/jpeg", name: f.name || "" };
+    const t = tx("readwrite").put(dado, k).transaction;
     t.oncomplete = depois;
     t.onerror = t.onabort = () => alert("Não foi possível salvar: " + (t.error && t.error.message));
   } catch(e) { alert("Não foi possível ler o arquivo: " + e.message); }
 }
-function get(k){ return new Promise(r => { const q = tx("readonly").get(k); q.onsuccess = () => r(q.result); q.onerror = () => r(null); }); }
+function get(k){ return new Promise(r => { const q = tx("readonly").get(k);
+  q.onsuccess = () => { const v = q.result; if (v && v.buf) { const b = new Blob([v.buf], { type: v.type }); b.name = v.name; r(b); } else r(v); };
+  q.onerror = () => r(null); }); }
 
 async function render(){
   clearInterval(qrTimer);
