@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carteira</title>
+<style>
+  :root { --bg:#ffffff; --bar:#ffffff; --card:#fff; --text:#1c1c1e; --muted:#6b6b70; --accent:#3a6df0; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  .slot, .slot img { user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+  .slot img { pointer-events:none; }
+  body { margin:0; font-family:system-ui,sans-serif; background:var(--bg); color:var(--text); }
+  main { max-width:520px; margin:0 auto; padding:24px 16px; }
+  h1 { font-size:1.4rem; margin:0 0 16px; text-align:center; font-weight:400; }
+  .tabs { display:flex; margin:0 -16px 16px; border-bottom:1px solid #ddd; background:var(--bar); }
+  .tabs button { flex:1; background:transparent; color:#000; border-radius:0; padding:18px 0; border-bottom:3px solid transparent; }
+  .tabs button.on { color:#000; font-weight:500; border-bottom-color:#000; }
+  p.sub { color:var(--muted); margin:0 0 20px; font-size:.9rem; }
+  .card { background:var(--card); border-radius:14px; padding:14px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .card h2 { font-size:1rem; margin:0 0 10px; }
+  .slot { aspect-ratio:1.5; border:2px dashed var(--muted); border-radius:10px; display:flex; align-items:center; justify-content:center; color:var(--muted); cursor:pointer; overflow:hidden; }
+  .slot img { width:100%; height:100%; object-fit:contain; }
+  .row { display:flex; gap:8px; margin-top:10px; }
+  button { flex:1; padding:10px; border:0; border-radius:8px; background:var(--accent); color:#fff; font-size:.9rem; cursor:pointer; }
+  button.sec { background:transparent; color:var(--muted); border:1px solid var(--muted); }
+  #viewer { position:fixed; inset:0; background:#000; display:none; align-items:center; justify-content:center; z-index:9; }
+  #viewer img { max-width:100%; max-height:100%; touch-action:pinch-zoom; }
+  input { display:none; }
+  main { max-width:none; width:100%; padding:16px 16px 0; height:100dvh; display:flex; flex-direction:column; }
+  #list { flex:1; min-height:0; display:flex; margin:-16px -16px 0; padding:0 10px 10px; background:#f0f0f2; }
+  .card { flex:1; display:flex; flex-direction:column; padding:0; margin:0; box-shadow:none; background:transparent; }
+  .slot { flex:1; aspect-ratio:auto; min-height:0; }
+  .slot:has(img) { border:0; border-radius:0; background:#f0f0f2; }
+  .updated { margin:8px 0 0; text-align:center; font-size:.85rem; color:var(--muted); }
+  main { height:calc(100dvh - 76px); }
+  .pg { display:none; flex:1; min-height:0; flex-direction:column; }
+  .pg.on { display:flex; }
+  #pg-opcoes { overflow-y:auto; }
+  #pg-opcoes .homebody { padding-bottom:40px; }
+  .vazio { flex:1; display:flex; align-items:center; justify-content:center; color:var(--muted); }
+  .top { display:flex; align-items:center; gap:4px; margin:0 -8px 8px; min-height:60px; }
+  .top h1 { flex:1; margin:0; }
+  .top h1 { margin-left:44px; }
+  .ic { flex:0 0 44px; height:44px; padding:10px; background:transparent; color:var(--text); border-radius:50%; }
+  .ic svg { width:24px; height:24px; display:block; }
+  .view { flex:1; min-height:0; display:flex; flex-direction:column; }
+  .view.hide { display:none; }
+  .homebody { flex:1; margin:0 -16px; padding:24px 16px; background:#f0f0f2; border-top:1px solid #ddd; }
+  .sec-t { font-weight:500; color:#444; margin:0 0 12px 2px; }
+  .doccard { display:flex; align-items:center; gap:14px; background:#fff; border-radius:8px; padding:22px 16px; cursor:pointer; }
+  .doc-ic { width:44px; height:44px; border-radius:50%; background:#e6e6ea; display:flex; align-items:center; justify-content:center; color:#555; flex:none; }
+  .doc-ic svg { width:24px; height:16px; display:block; }
+  .doc-tx { flex:1; display:flex; flex-direction:column; gap:4px; }
+  .doc-tx b { font-weight:500; }
+  .doc-tx span { color:var(--muted); font-size:.9rem; }
+  .chev { width:22px; height:22px; color:#555; flex:none; }
+  .addbtn { width:100%; margin-top:16px; padding:14px; background:#fff; color:#333; border:1px solid #888; border-radius:8px; font-size:1rem; font-weight:500; }
+  .form { background:#fff; border-radius:8px; padding:16px; display:flex; flex-direction:column; gap:14px; }
+  .form label { display:flex; flex-direction:column; gap:6px; font-size:.9rem; color:#444; }
+  input.campo { display:block; width:100%; padding:12px; border:1px solid #bbb; border-radius:8px; font-size:1rem; font-family:inherit; text-transform:uppercase; }
+  .form .addbtn { margin-top:4px; }
+  #f-ok { color:#2e7d32; font-size:.9rem; text-align:center; min-height:1em; }
+  .pdf-nome { color:#444; font-size:.95rem; word-break:break-all; }
+  .form .row { margin-top:0; }
+  .form .row .addbtn { margin-top:0; }
+  .ok { color:#2e7d32; font-size:.9rem; text-align:center; min-height:1em; }
+  .qrbox { align-items:flex-start; padding-top:24px; cursor:default; border:0; border-radius:0; background:#f0f0f2; }
+  .qrbox { flex-direction:column; justify-content:center; padding:0; gap:20px; }
+  #qr { width:100%; }
+  #qr svg { width:100%; height:auto; display:block; }
+  .timer { width:100%; display:flex; align-items:center; gap:10px; color:#333; font-size:.95rem; }
+  .bar { flex:1; height:6px; background:#d6d6da; border-radius:3px; overflow:hidden; }
+  #qr-bar { height:100%; background:#000; width:100%; }
+  footer { position:fixed; left:0; right:0; bottom:0; height:76px; display:flex; border-top:1px solid #ddd; background:var(--bar); padding-bottom:env(safe-area-inset-bottom); }
+  footer button { flex:1; background:transparent; color:var(--muted); border-radius:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; font-size:.75rem; padding:6px 0; }
+  footer button svg { width:24px; height:24px; }
+  footer button.on { color:#000; font-weight:600; }
+</style>
+</head>
+<body>
+<main>
+  <section class="pg on" id="pg-carteira">
+   <div class="view" id="home">
+    <header class="top"><h1 style="margin-left:0">Carteira</h1></header>
+    <div class="homebody">
+      <div class="sec-t">Válidas</div>
+      <div class="doccard" onclick="verDoc()">
+        <div class="doc-ic"><svg class="flag" viewBox="0 0 30 20"><rect y="0.000" width="30" height="1.588" fill="#000"/><rect y="1.538" width="30" height="1.588" fill="#fff"/><rect y="3.077" width="30" height="1.588" fill="#000"/><rect y="4.615" width="30" height="1.588" fill="#fff"/><rect y="6.154" width="30" height="1.588" fill="#000"/><rect y="7.692" width="30" height="1.588" fill="#fff"/><rect y="9.231" width="30" height="1.588" fill="#000"/><rect y="10.769" width="30" height="1.588" fill="#fff"/><rect y="12.308" width="30" height="1.588" fill="#000"/><rect y="13.846" width="30" height="1.588" fill="#fff"/><rect y="15.385" width="30" height="1.588" fill="#000"/><rect y="16.923" width="30" height="1.588" fill="#fff"/><rect y="18.462" width="30" height="1.588" fill="#000"/><rect width="11" height="7.692" fill="#d42b2b"/><circle cx="5.5" cy="3.846" r="2.9" fill="#fff"/><path d="M4.2 2.6l1.6-.5 1.3 1 .1 1.3-1 1.2-.9.3-.5-1-.8-.5z" fill="#1f3c88"/><rect width="30" height="20" fill="none" stroke="#999" stroke-width=".6"/></svg></div>
+        <div class="doc-tx"><b>RG - Registro Geral</b><span id="c-nome"></span><span id="c-num"></span></div>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+      </div>
+      <button class="addbtn">＋&nbsp; Adicionar carteira</button>
+    </div>
+   </div>
+   <div class="view hide" id="doc">
+    <header class="top">
+      <button class="ic" aria-label="Voltar" onclick="verHome()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <h1>Carteira</h1>
+      <button class="ic" aria-label="Compartilhar" onclick="compartilhar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.6M8.2 13.2l7.6 4.6"/></svg></button>
+      <button class="ic" aria-label="Mais"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button>
+    </header>
+    <div class="tabs" id="tabs"></div>
+    <div id="list"></div>
+   </div>
+  </section>
+  <section class="pg" id="pg-servicos">
+    <h1>Serviços</h1>
+    <div class="homebody">
+      <div class="doccard">
+        <div class="doc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:24px;height:24px"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg></div>
+        <div class="doc-tx"><b>Ajuda</b></div>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+      </div>
+    </div>
+  </section>
+  <section class="pg" id="pg-opcoes">
+    <h1>Opções</h1>
+    <div class="homebody">
+      <div class="sec-t">Dados do documento</div>
+      <div class="form">
+        <label>Nome completo<input class="campo" id="f-nome" autocomplete="off"></label>
+        <label>Número<input class="campo" id="f-num" inputmode="numeric" autocomplete="off"></label>
+        <button class="addbtn" onclick="salvarDados()">Salvar</button>
+        <div id="f-ok"></div>
+      </div>
+      <div class="sec-t" style="margin-top:24px">Fotos do RG</div>
+      <div class="form">
+        <input type="file" id="foto-in" accept="image/*">
+        <button class="addbtn" onclick="trocarFoto('rg-frente')">Trocar foto frente</button>
+        <button class="addbtn" onclick="trocarFoto('rg-verso')">Trocar foto verso</button>
+        <div id="foto-ok" class="ok"></div>
+      </div>
+      <div class="sec-t" style="margin-top:24px">PDF do RG</div>
+      <div class="form">
+        <div id="pdf-nome" class="pdf-nome">Nenhum PDF adicionado</div>
+        <input type="file" id="pdf-in" accept="application/pdf">
+        <button class="addbtn" onclick="document.getElementById('pdf-in').click()">Adicionar PDF</button>
+        <div class="row" id="pdf-acoes" style="display:none">
+          <button class="addbtn" onclick="abrirPdf()">Abrir</button>
+          <button class="addbtn" onclick="removerPdf()">Remover</button>
+        </div>
+      </div>
+      <div class="sec-t" style="margin-top:24px">Imagem</div>
+      <div class="form">
+        <a class="addbtn" href="https://chatgpt.com/" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;color:inherit">Criar imagem</a>
+      </div>
+    </div>
+  </section>
+</main>
+<footer id="nav">
+  <button class="on" data-pg="carteira"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 14h2"/></svg>Carteira</button>
+  <button data-pg="servicos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r="1.5" fill="currentColor"/></svg>Serviços</button>
+  <button data-pg="opcoes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Opções</button>
+</footer>
+<div id="viewer" onclick="this.style.display='none'"><img alt=""></div>
+<script>
+const slots = [["rg-frente","Frente"],["rg-verso","Verso"],["qrcode","QR code"]];
+let atual = 0;
+let db;
+const req = indexedDB.open("meus-docs", 1);
+req.onupgradeneeded = () => req.result.createObjectStore("fotos");
+req.onsuccess = () => { db = req.result; render(); mostrarPdf(); };
+req.onerror = () => { document.getElementById("list").textContent = "Este navegador não permite salvar (modo anônimo?)."; };
+
+function tx(mode){ return db.transaction("fotos", mode).objectStore("fotos"); }
+function get(k){ return new Promise(r => { const q = tx("readonly").get(k); q.onsuccess = () => r(q.result); q.onerror = () => r(null); }); }
+
+async function render(){
+  clearInterval(qrTimer);
+  const tabs = document.getElementById("tabs"); tabs.innerHTML = "";
+  slots.forEach(([, label], i) => {
+    const b = document.createElement("button"); b.textContent = label;
+    if (i === atual) b.className = "on";
+    b.onclick = () => { atual = i; render(); };
+    tabs.appendChild(b);
+  });
+  const list = document.getElementById("list"); list.innerHTML = "";
+  for (const [k, label] of [slots[atual]]){
+    if (k === "qrcode") {
+      const c = document.createElement("div"); c.className = "card";
+      c.innerHTML = `<div class="slot qrbox"><div id="qr">${qrSvg()}</div>
+        <div class="timer"><div class="bar"><div id="qr-bar"></div></div><div id="qr-seg">60s</div></div></div>
+        <p class="updated">Ultima atualização em: 07/011/26 - 22:25</p>`;
+      list.appendChild(c); iniciarTimer(); continue;
+    }
+    const blob = await get(k);
+    const url = blob ? URL.createObjectURL(blob) : null;
+    const c = document.createElement("div"); c.className = "card";
+    c.innerHTML = `      <div class="slot">${url ? `<img src="${url}" alt="${label}" data-k="${k}" onload="deitar(this)">` : "Toque para adicionar foto"}</div>
+    <p class="updated">Última atualização em: 07/011/26 - 22:25</p>
+      <input type="file" accept="image/*">`;
+    const input = c.querySelector("input");
+    c.querySelector(".slot").onclick = () => { if (!url) input.click(); };
+    input.onchange = () => { const f = input.files[0]; if (f) { tx("readwrite").put(f, k).transaction.oncomplete = render; } };
+    list.appendChild(c);
+  }
+}
+let qrTimer;
+function iniciarTimer(){
+  clearInterval(qrTimer);
+  let fim = Date.now() + 60000;
+  const tick = () => {
+    let rest = fim - Date.now();
+    if (rest <= 0) {
+      try { localStorage.removeItem("qr"); } catch(e) {}
+      document.getElementById("qr").innerHTML = qrSvg();
+      fim = Date.now() + 60000; rest = 60000;
+    }
+    document.getElementById("qr-bar").style.width = (rest / 600) + "%";
+    document.getElementById("qr-seg").textContent = Math.ceil(rest / 1000) + "s";
+  };
+  tick(); qrTimer = setInterval(tick, 100);
+}
+function qrSvg(){
+  const n = 29; let bits;
+  try { bits = localStorage.getItem("qr"); } catch(e) {}
+  if (!bits || bits.length !== n*n) { bits = Array.from({length:n*n}, () => Math.random() < .5 ? "1" : "0").join(""); try { localStorage.setItem("qr", bits); } catch(e) {} }
+  const finder = (x, y) => (r, c) => { const a = r - y, b = c - x; if (a < -1 || a > 7 || b < -1 || b > 7) return null;
+    if (a < 0 || a > 6 || b < 0 || b > 6) return false; return a === 0 || a === 6 || b === 0 || b === 6 || (a >= 2 && a <= 4 && b >= 2 && b <= 4); };
+  const fs = [finder(0,0), finder(n-7,0), finder(0,n-7)];
+  let d = "";
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    let v = null; for (const f of fs) { const t = f(r, c); if (t !== null) { v = t; break; } }
+    if (v === null) v = (r === 6 || c === 6) ? (r + c) % 2 === 0 : bits[r*n + c] === "1";
+    if (v) d += `M${c} ${r}h1v1h-1z`;
+  }
+  return `<svg viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges"><path d="${d}" fill="#000"/></svg>`;
+}
+function rot(k){ return 90; }
+function deitar(img){ const r = rot(img.dataset.k), s = img.parentElement, lado = r % 180 !== 0;
+  s.style.position = "relative";
+  const alt = s.clientHeight * 1;
+  Object.assign(img.style, { position:"absolute", left:"50%", top:(alt / 2) + "px", maxWidth:"none", objectFit:"fill",
+    width:(lado ? alt : s.clientWidth) + "px", height:(lado ? s.clientWidth : alt) + "px",
+    transform:"translate(-50%,-50%) rotate(" + r + "deg)" }); }
+let fotoAlvo = null;
+function trocarFoto(k){ fotoAlvo = k; document.getElementById("foto-in").click(); }
+document.getElementById("foto-in").onchange = e => {
+  const f = e.target.files[0]; e.target.value = "";
+  if (!f || !fotoAlvo) return;
+  tx("readwrite").put(f, fotoAlvo).transaction.oncomplete = () => {
+    render();
+    const ok = document.getElementById("foto-ok"); ok.textContent = "Foto atualizada!"; setTimeout(() => ok.textContent = "", 2000);
+  };
+};
+async function mostrarPdf(){
+  const f = await get("rg-pdf");
+  document.getElementById("pdf-nome").textContent = f ? (f.name || "rg.pdf") : "Nenhum PDF adicionado";
+  document.getElementById("pdf-acoes").style.display = f ? "flex" : "none";
+}
+document.getElementById("pdf-in").onchange = e => { const f = e.target.files[0]; if (f) tx("readwrite").put(f, "rg-pdf").transaction.oncomplete = mostrarPdf; e.target.value = ""; };
+async function abrirPdf(){ const f = await get("rg-pdf"); if (f) window.open(URL.createObjectURL(f), "_blank"); }
+function removerPdf(){ if (confirm("Remover o PDF do RG?")) tx("readwrite").delete("rg-pdf").transaction.oncomplete = mostrarPdf; }
+function lerDados(){ try { return JSON.parse(localStorage.getItem("dados") || "{}"); } catch(e) { return {}; } }
+function mostrarDados(){
+  const d = lerDados();
+  document.getElementById("c-nome").textContent = d.nome || "Nome não configurado";
+  document.getElementById("c-num").textContent = d.num || "";
+  document.getElementById("f-nome").value = d.nome || "";
+  document.getElementById("f-num").value = d.num || "";
+}
+function salvarDados(){
+  const d = { nome: document.getElementById("f-nome").value.trim().toUpperCase(), num: document.getElementById("f-num").value.trim() };
+  try { localStorage.setItem("dados", JSON.stringify(d)); } catch(e) {}
+  mostrarDados();
+  const ok = document.getElementById("f-ok"); ok.textContent = "Salvo!"; setTimeout(() => ok.textContent = "", 2000);
+}
+mostrarDados();
+function verDoc(){ document.getElementById("home").classList.add("hide"); document.getElementById("doc").classList.remove("hide"); const i = document.querySelector(".slot img"); if (i) deitar(i); }
+function verHome(){ document.getElementById("doc").classList.add("hide"); document.getElementById("home").classList.remove("hide"); }
+async function compartilhar(){
+  const blob = await get(slots[atual][0]);
+  try {
+    if (blob && navigator.canShare && navigator.canShare({ files:[new File([blob], "documento.jpg", { type: blob.type })] }))
+      await navigator.share({ files:[new File([blob], "documento.jpg", { type: blob.type })] });
+    else if (navigator.share) await navigator.share({ title:"Carteira", url:location.href });
+  } catch(e) {}
+}
+function open(url){ const v = document.getElementById("viewer"); v.querySelector("img").src = url; v.style.display = "flex"; }
+document.querySelectorAll("#nav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#nav button").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll(".pg").forEach(p => p.classList.toggle("on", p.id === "pg-" + b.dataset.pg));
+  if (b.dataset.pg === "carteira") verHome();
+});
+window.addEventListener("resize", () => { const i = document.querySelector(".slot img"); if (i) deitar(i); });
+</script>
+</body>
+</html>
