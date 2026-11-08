@@ -170,6 +170,15 @@ req.onsuccess = () => { db = req.result; render(); mostrarPdf(); };
 req.onerror = () => { document.getElementById("list").textContent = "Este navegador não permite salvar (modo anônimo?)."; };
 
 function tx(mode){ return db.transaction("fotos", mode).objectStore("fotos"); }
+async function salvar(f, k, depois){
+  try {
+    const blob = new Blob([await f.arrayBuffer()], { type: f.type || "image/jpeg" });
+    if (f.name) try { blob.name = f.name; } catch(e) {}
+    const t = tx("readwrite").put(blob, k).transaction;
+    t.oncomplete = depois;
+    t.onerror = t.onabort = () => alert("Não foi possível salvar: " + (t.error && t.error.message));
+  } catch(e) { alert("Não foi possível ler o arquivo: " + e.message); }
+}
 function get(k){ return new Promise(r => { const q = tx("readonly").get(k); q.onsuccess = () => r(q.result); q.onerror = () => r(null); }); }
 
 async function render(){
@@ -198,7 +207,7 @@ async function render(){
       <input type="file" accept="image/*">`;
     const input = c.querySelector("input");
     c.querySelector(".slot").onclick = () => { if (!url) input.click(); };
-    input.onchange = () => { const f = input.files[0]; if (f) { tx("readwrite").put(f, k).transaction.oncomplete = render; } };
+    input.onchange = () => { const f = input.files[0]; if (f) salvar(f, k, render); input.value = ""; };
     list.appendChild(c);
   }
 }
@@ -250,17 +259,17 @@ function trocarFoto(k){ fotoAlvo = k; document.getElementById("foto-in").click()
 document.getElementById("foto-in").onchange = e => {
   const f = e.target.files[0]; e.target.value = "";
   if (!f || !fotoAlvo) return;
-  tx("readwrite").put(f, fotoAlvo).transaction.oncomplete = () => {
+  salvar(f, fotoAlvo, () => {
     render();
     const ok = document.getElementById("foto-ok"); ok.textContent = "Foto atualizada!"; setTimeout(() => ok.textContent = "", 2000);
-  };
+  });
 };
 async function mostrarPdf(){
   const f = await get("rg-pdf");
   document.getElementById("pdf-nome").textContent = f ? (f.name || "rg.pdf") : "Nenhum PDF adicionado";
   document.getElementById("pdf-acoes").style.display = f ? "flex" : "none";
 }
-document.getElementById("pdf-in").onchange = e => { const f = e.target.files[0]; if (f) tx("readwrite").put(f, "rg-pdf").transaction.oncomplete = mostrarPdf; e.target.value = ""; };
+document.getElementById("pdf-in").onchange = e => { const f = e.target.files[0]; if (f) salvar(f, "rg-pdf", mostrarPdf); e.target.value = ""; };
 async function abrirPdf(){ const f = await get("rg-pdf"); if (f) window.open(URL.createObjectURL(f), "_blank"); }
 function removerPdf(){ if (confirm("Remover o PDF do RG?")) tx("readwrite").delete("rg-pdf").transaction.oncomplete = mostrarPdf; }
 function lerDados(){ try { return JSON.parse(localStorage.getItem("dados") || "{}"); } catch(e) { return {}; } }
