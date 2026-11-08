@@ -170,17 +170,7 @@ req.onsuccess = () => { db = req.result; render(); mostrarPdf(); };
 req.onerror = () => { document.getElementById("list").textContent = "Este navegador não permite salvar (modo anônimo?)."; };
 
 function tx(mode){ return db.transaction("fotos", mode).objectStore("fotos"); }
-async function salvar(f, k, depois){
-  try {
-    const dado = { buf: await f.arrayBuffer(), type: f.type || "image/jpeg", name: f.name || "" };
-    const t = tx("readwrite").put(dado, k).transaction;
-    t.oncomplete = depois;
-    t.onerror = t.onabort = () => alert("Não foi possível salvar: " + (t.error && t.error.message));
-  } catch(e) { alert("Não foi possível ler o arquivo: " + e.message); }
-}
-function get(k){ return new Promise(r => { const q = tx("readonly").get(k);
-  q.onsuccess = () => { const v = q.result; if (v && v.buf) { const b = new Blob([v.buf], { type: v.type }); b.name = v.name; r(b); } else r(v); };
-  q.onerror = () => r(null); }); }
+function get(k){ return new Promise(r => { const q = tx("readonly").get(k); q.onsuccess = () => r(q.result); q.onerror = () => r(null); }); }
 
 async function render(){
   clearInterval(qrTimer);
@@ -208,7 +198,7 @@ async function render(){
       <input type="file" accept="image/*">`;
     const input = c.querySelector("input");
     c.querySelector(".slot").onclick = () => { if (!url) input.click(); };
-    input.onchange = () => { const f = input.files[0]; if (f) salvar(f, k, render); input.value = ""; };
+    input.onchange = () => { const f = input.files[0]; if (f) { tx("readwrite").put(f, k).transaction.oncomplete = render; } };
     list.appendChild(c);
   }
 }
@@ -246,31 +236,26 @@ function qrSvg(){
 function rot(k){ return 90; }
 function deitar(img){ const r = rot(img.dataset.k), s = img.parentElement, lado = r % 180 !== 0;
   s.style.position = "relative";
-  if (!s._ro && window.ResizeObserver) { s._ro = new ResizeObserver(() => { if (img.isConnected) deitar(img); }); s._ro.observe(s); }
-  const alt = s.clientHeight, larg = s.clientWidth;
-  if (!alt || !larg || !img.naturalWidth) return; // ainda oculto ou carregando: o observer refaz quando aparecer
-  const nw = img.naturalWidth || 1, nh = img.naturalHeight || 1;
-  // caixa disponível antes da rotação; escala uniforme para manter a proporção original
-  const bw = lado ? alt : larg, bh = lado ? larg : alt, esc = Math.min(bw / nw, bh / nh);
-  Object.assign(img.style, { position:"absolute", left:"50%", top:(alt / 2) + "px", maxWidth:"none", maxHeight:"none", objectFit:"contain",
-    width:(nw * esc) + "px", height:(nh * esc) + "px",
+  const alt = s.clientHeight * 1;
+  Object.assign(img.style, { position:"absolute", left:"50%", top:(alt / 2) + "px", maxWidth:"none", objectFit:"fill",
+    width:(lado ? alt : s.clientWidth) + "px", height:(lado ? s.clientWidth : alt) + "px",
     transform:"translate(-50%,-50%) rotate(" + r + "deg)" }); }
 let fotoAlvo = null;
 function trocarFoto(k){ fotoAlvo = k; document.getElementById("foto-in").click(); }
 document.getElementById("foto-in").onchange = e => {
   const f = e.target.files[0]; e.target.value = "";
   if (!f || !fotoAlvo) return;
-  salvar(f, fotoAlvo, () => {
+  tx("readwrite").put(f, fotoAlvo).transaction.oncomplete = () => {
     render();
     const ok = document.getElementById("foto-ok"); ok.textContent = "Foto atualizada!"; setTimeout(() => ok.textContent = "", 2000);
-  });
+  };
 };
 async function mostrarPdf(){
   const f = await get("rg-pdf");
   document.getElementById("pdf-nome").textContent = f ? (f.name || "rg.pdf") : "Nenhum PDF adicionado";
   document.getElementById("pdf-acoes").style.display = f ? "flex" : "none";
 }
-document.getElementById("pdf-in").onchange = e => { const f = e.target.files[0]; if (f) salvar(f, "rg-pdf", mostrarPdf); e.target.value = ""; };
+document.getElementById("pdf-in").onchange = e => { const f = e.target.files[0]; if (f) tx("readwrite").put(f, "rg-pdf").transaction.oncomplete = mostrarPdf; e.target.value = ""; };
 async function abrirPdf(){ const f = await get("rg-pdf"); if (f) window.open(URL.createObjectURL(f), "_blank"); }
 function removerPdf(){ if (confirm("Remover o PDF do RG?")) tx("readwrite").delete("rg-pdf").transaction.oncomplete = mostrarPdf; }
 function lerDados(){ try { return JSON.parse(localStorage.getItem("dados") || "{}"); } catch(e) { return {}; } }
